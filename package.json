@@ -1,0 +1,9 @@
+{
+  "name": "Muzzley Widget Emulator",
+  "main": "index.html",
+  "window": {
+    "toolbar": false,
+    "width": 600,
+    "height": 650
+  }
+}
