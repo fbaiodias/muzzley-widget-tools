@@ -120,6 +120,10 @@ function findFiles(cb) {
   }
 }
 
+function showDeveloperTools() {
+  require('nw.gui').Window.get().showDevTools();
+}
+
 $(document).ready(function() {
   var wrapper = $('<div/>').css({height:0,width:0,'overflow':'hidden'});
   var chooser = $(':file').wrap(wrapper);
@@ -146,4 +150,6 @@ $(document).ready(function() {
   }).show();
 
   $("#reload").click(update);
+
+  $("#showDeveloperTools").click(showDeveloperTools);
 });
