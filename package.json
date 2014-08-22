@@ -1,9 +1,12 @@
 {
-  "name": "Muzzley Widget Emulator",
+  "name": "muzzley-widget-emulator",
   "main": "index.html",
   "window": {
+    "title": "Muzzley Widget Emulator",
     "toolbar": false,
     "width": 600,
-    "height": 650
+    "height": 650,
+    "min_width": 460,
+    "min_height": 200
   }
 }

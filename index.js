@@ -5,9 +5,7 @@ var swig  = require('swig');
 swig.setDefaults({ autoescape: false });
 
 var tpl = swig.compileFile('assets/template.html');
-var widget = {
-  path:'/path/to/widget/'
-}
+var widget = {}
 
 function createMonitor() {
   watch.createMonitor(widget.path, function (monitor) {
@@ -66,13 +64,13 @@ function update() {
   }
 
   function render() {
-    var iframe = document.getElementById('test_iframe');
-
     var html_string = tpl({
       stylesheet: css,
       html: html,
       javascript: js
     });
+
+    var iframe = document.getElementById('test_iframe');
     
     var iframedoc = iframe.document;
     if (iframe.contentDocument) {
@@ -92,7 +90,7 @@ function update() {
       alert('Cannot inject dynamic contents into iframe.');
     }
   
-    message.innerText = 'Done!';
+    message.innerText = widget.path;
   } 
 
   getHtml();
@@ -107,25 +105,45 @@ function findFiles(cb) {
       var m1 = (files[i]).match(filePatt);
       switch(m1[0]) {
         case '.html':
-          widget.html = widget.path + files[i];
+          widget.html = widget.path + '/' + files[i];
         break;
         case '.js':
-          widget.js = widget.path + files[i];
+          widget.js = widget.path + '/' + files[i];
         break;
         case '.css':
-          widget.css = widget.path + files[i];
+          widget.css = widget.path + '/' + files[i];
         break;
       }
     }
 
-    cb(err, widget)
+    cb(err, widget);
   }
 }
 
-findFiles(function(err, widget) {
-  console.log(err || widget);
+$(document).ready(function() {
+  var wrapper = $('<div/>').css({height:0,width:0,'overflow':'hidden'});
+  var chooser = $(':file').wrap(wrapper);
 
-  update();
-  createMonitor();
+  chooser.change(function(){
+    if(!$(this).val()) {
+      return;
+    }
+    
+    widget.path = $(this).val();
+    console.log('WIDGET PATH '+widget.path);
+    findFiles(function(err, widget) {
+      console.log(err || widget);
+
+      update();
+      createMonitor();
+    });
+  })
+
+  chooser.trigger('click');  
+
+  $('#file').click(function(){
+      chooser.click();
+  }).show();
+
+  $("#reload").click(update);
 });
-

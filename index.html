@@ -1,10 +1,26 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+    <link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
     <script type="text/javascript" src="index.js"></script>
   </head>
   <body>
-    <iframe id="test_iframe" src="about:blank" width="360" height="600"></iframe>
-    <h1 id="message">Test iframe</h1>
+    <div class="sidebar">
+      <div class="button" id="fileButton">
+        <div id="file"><i class="fa fa-file-code-o"></i></div>
+        <input type="file" nwdirectory/>
+        <div class="text"> Open widget</div>
+      </div>
+      <div class="button" id="reloadButton">
+        <div id="reload"><i class="fa fa-refresh"></i></div>
+        <div class="text"> Reload</div>
+      </div>
+    </div>
+    <div class="content">
+      <div id="message">Choose a widget first</div>
+      <iframe id="test_iframe" src="about:blank" width="360" height="600"></iframe>
+    </div>
   </body>
 </html>
