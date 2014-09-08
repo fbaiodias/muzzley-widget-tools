@@ -5,7 +5,9 @@ var swig  = require('swig');
 swig.setDefaults({ autoescape: false });
 
 var tpl = swig.compileFile('assets/template.html');
-var widget = {}
+var widget = {};
+
+var authenticated = false;
 
 function createMonitor() {
   watch.createMonitor(widget.path, function (monitor) {
@@ -65,10 +67,12 @@ function update() {
 
   function render() {
     var html_string = tpl({
-      stylesheet: css,
-      html: html,
-      javascript: js
+      stylesheet: css.replace(/\"\/\//g, '"https://').replace(/\'\/\//g, '\'https://'),
+      html: html.replace(/\"\/\//g, '"https://').replace(/\'\/\//g, '\'https://'),
+      javascript: js.replace(/\"\/\//g, '"https://').replace(/\'\/\//g, '\'http://')
     });
+
+    //console.log(html_string);
 
     var iframe = document.getElementById('test_iframe');
     
@@ -91,6 +95,8 @@ function update() {
     }
   
     message.innerText = widget.path;
+
+    saveWidget(html,css,js);
   } 
 
   getHtml();
@@ -101,9 +107,17 @@ function findFiles(cb) {
 
   function gotFiles(err, files) {
     var filePatt = /\.[0-9a-z]{1,5}$/i;
+    localStorage.widgetId = '';
+    localStorage.activity = '';
+      
     for(var i in files) {
       var m1 = (files[i]).match(filePatt);
       switch(m1[0]) {
+        case '.json':
+          var configFile = require(widget.path + '/' + files[i]);
+          localStorage.widgetId = configFile.id;
+          localStorage.activity = configFile.activity;
+        break;
         case '.html':
           widget.html = widget.path + '/' + files[i];
         break;
@@ -114,6 +128,13 @@ function findFiles(cb) {
           widget.css = widget.path + '/' + files[i];
         break;
       }
+    }
+
+    console.log('localStorage config', JSON.stringify(localStorage.widgetId, null, 2));
+
+    if(!localStorage.widgetId || localStorage.widgetId == '') {
+      alert('No config.json file found!!');
+      err = 'No config.json file found!!';
     }
 
     cb(err, widget);
@@ -133,23 +154,107 @@ $(document).ready(function() {
       return;
     }
     
-    widget.path = $(this).val();
-    console.log('WIDGET PATH '+widget.path);
-    findFiles(function(err, widget) {
-      console.log(err || widget);
+    localStorage.path = $(this).val();
+    changePath();
+  });
 
-      update();
-      createMonitor();
-    });
-  })
-
-  chooser.trigger('click');  
-
+  if(localStorage.path) {
+    changePath();
+  } else {
+    chooser.trigger('click');  
+  }
+  
   $('#file').click(function(){
       chooser.click();
   }).show();
 
-  $("#reload").click(update);
+  $('#reload').click(update);
 
-  $("#showDeveloperTools").click(showDeveloperTools);
+  $('#showDeveloperTools').click(showDeveloperTools);
+
+  $('#showSettings').click(function() {
+    $('.settings').animate({
+      width: 'toggle'
+    }, 200);
+  });
+
+  $('#showQRCode').click(function() {
+    console.log(localStorage.activity);
+    $('.qrcode').animate({
+      opacity: 'toggle'
+    }, 200);
+    $('.qrcode').css('background', 'url(http://www.muzzley.com/qrcode/'+localStorage.activity+') no-repeat center center rgba(0,0,0,0.3)');  
+  });
+  $('.qrcode').click(function() {
+    console.log(localStorage.activity);
+    $('.qrcode').animate({
+      opacity: 'toggle'
+    }, 200);
+    $('.qrcode').css('background', 'url(http://www.muzzley.com/qrcode/'+localStorage.activity+') no-repeat center center rgba(0,0,0,0.3)');  
+  });
+
+  $('#login').click(function() {
+    $('#login').val('logging in...');
+
+    localStorage.username = $('#username').val();
+    localStorage.password = $('#password').val();
+
+    login();
+  });
+
+  if(localStorage.username && localStorage.password) {
+    $('#username').val(localStorage.username)
+    $('#password').val(localStorage.password);
+
+    $('#login').trigger('click');  
+  }
 });
+
+function login() {
+  console.log('Logging in!');
+  $.ajax({
+    type: 'POST',
+    url: 'https://www.muzzley.com/signin',
+    data: {
+      email: localStorage.username,
+      password: localStorage.password
+    },
+    complete: function(data){
+      console.log('Log in status', data.status);
+      authenticated = true;
+      $('.settings').animate({
+        width: 'toggle'
+      }, 200);
+      $('#login').val('log in again');
+    },
+  });
+}
+
+function changePath () {
+  widget.path = localStorage.path;
+  console.log('WIDGET PATH '+widget.path);
+  findFiles(function(err, widget) {
+    console.log(err || widget);
+
+    update();
+    createMonitor();
+  });
+}
+
+function saveWidget(html, css, js) {
+  if(authenticated && localStorage.widgetId) {
+    $.ajax({
+      type: 'POST',
+      url: 'https://www.muzzley.com/widgets/'+localStorage.widgetId+'/editor',
+      data: {
+        html: html,
+        css: css,
+        js: js
+      },
+      complete: function(data){
+        console.log('POST status', data.status);
+      },
+      //dataType: dataType
+    });
+  }
+}

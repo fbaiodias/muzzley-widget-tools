@@ -21,10 +21,28 @@
         <div id="showDeveloperTools"><i class="fa fa-cog"></i></div>
         <div class="text"> Show Tools</div>
       </div>
+      <div class="button" id="showSettingsButton">
+        <div id="showSettings"><i class="fa fa-wrench"></i></div>
+        <div class="text"> Settings</div>
+      </div>
+      <div class="button" id="showQRCodeButton">
+        <div id="showQRCode"><i class="fa fa-qrcode"></i></div>
+        <div class="text"> QRCode</div>
+      </div>
     </div>
     <div class="content">
       <div id="message">Choose a widget first</div>
       <iframe id="test_iframe" src="about:blank" width="360" height="600"></iframe>
+    </div>
+    <div class="settings">
+      <form>
+        <label>Muzzley Account</label>
+        <input type="text" placeholder="username" id="username"/>
+        <input type="password" placeholder="password" id="password"/>
+        <input type="button" id="login" value="login">
+      </form>
+    </div>
+    <div class="qrcode">
     </div>
   </body>
 </html>
