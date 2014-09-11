@@ -99,34 +99,43 @@ function update() {
     saveWidget(html,css,js);
   } 
 
-  getHtml();
+  if(widget.html && widget.html !== '') {
+    getHtml();
+  }
 }
 
 function findFiles(cb) {
   fs.readdir(widget.path, gotFiles);
 
   function gotFiles(err, files) {
+    if(err || !files) {
+      alert('Oh no, there was an error!!!');
+      return console.log(err);
+    }
+
     var filePatt = /\.[0-9a-z]{1,5}$/i;
     localStorage.widgetId = '';
     localStorage.activity = '';
       
     for(var i in files) {
       var m1 = (files[i]).match(filePatt);
-      switch(m1[0]) {
-        case '.json':
-          var configFile = require(widget.path + '/' + files[i]);
-          localStorage.widgetId = configFile.id;
-          localStorage.activity = configFile.activity;
-        break;
-        case '.html':
-          widget.html = widget.path + '/' + files[i];
-        break;
-        case '.js':
-          widget.js = widget.path + '/' + files[i];
-        break;
-        case '.css':
-          widget.css = widget.path + '/' + files[i];
-        break;
+      if(m1 && m1.length > 0) {
+        switch(m1[0]) {
+          case '.json':
+            var configFile = require(widget.path + '/' + files[i]);
+            localStorage.widgetId = configFile.id;
+            localStorage.activity = configFile.activity;
+          break;
+          case '.html':
+            widget.html = widget.path + '/' + files[i];
+          break;
+          case '.js':
+            widget.js = widget.path + '/' + files[i];
+          break;
+          case '.css':
+            widget.css = widget.path + '/' + files[i];
+          break;
+        }
       }
     }
 
@@ -150,7 +159,7 @@ $(document).ready(function() {
   var chooser = $(':file').wrap(wrapper);
 
   chooser.change(function(){
-    if(!$(this).val()) {
+    if(!$(this).val() || $(this).val() == '') {
       return;
     }
     
@@ -231,14 +240,16 @@ function login() {
 }
 
 function changePath () {
-  widget.path = localStorage.path;
-  console.log('WIDGET PATH '+widget.path);
-  findFiles(function(err, widget) {
-    console.log(err || widget);
+  if(localStorage.path && localStorage.path != '') {
+    widget.path = localStorage.path;
+    console.log('WIDGET PATH '+widget.path);
+    findFiles(function(err, widget) {
+      console.log(err || widget);
 
-    update();
-    createMonitor();
-  });
+      update();
+      createMonitor();
+    });
+  }
 }
 
 function saveWidget(html, css, js) {
