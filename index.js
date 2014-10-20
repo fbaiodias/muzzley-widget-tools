@@ -1,8 +1,11 @@
 var watch = require('watch');
 var fs  = require('fs');
 var swig  = require('swig');
+var config  = require('./config');
 
 swig.setDefaults({ autoescape: false });
+
+var baseUrl = config.muzzley.url;
 
 var tpl = swig.compileFile('assets/template.html');
 var widget = {};
@@ -192,14 +195,14 @@ $(document).ready(function() {
     $('.qrcode').animate({
       opacity: 'toggle'
     }, 200);
-    $('.qrcode').css('background', 'url(http://www.muzzley.com/qrcode/'+localStorage.activity+') no-repeat center center rgba(0,0,0,0.3)');  
+    $('.qrcode').css('background', 'url('+ baseUrl +'/qrcode/'+localStorage.activity+') no-repeat center center rgba(0,0,0,0.3)');  
   });
   $('.qrcode').click(function() {
     console.log(localStorage.activity);
     $('.qrcode').animate({
       opacity: 'toggle'
     }, 200);
-    $('.qrcode').css('background', 'url(http://www.muzzley.com/qrcode/'+localStorage.activity+') no-repeat center center rgba(0,0,0,0.3)');  
+    $('.qrcode').css('background', 'url('+ baseUrl +'/qrcode/'+localStorage.activity+') no-repeat center center rgba(0,0,0,0.3)');  
   });
 
   $('#login').click(function() {
@@ -223,7 +226,7 @@ function login() {
   console.log('Logging in!');
   $.ajax({
     type: 'POST',
-    url: 'https://www.muzzley.com/signin',
+    url: baseUrl + '/signin',
     data: {
       email: localStorage.username,
       password: localStorage.password
@@ -256,7 +259,7 @@ function saveWidget(html, css, js) {
   if(authenticated && localStorage.widgetId) {
     $.ajax({
       type: 'POST',
-      url: 'https://www.muzzley.com/widgets/'+localStorage.widgetId+'/editor',
+      url: baseUrl + '/widgets/'+localStorage.widgetId+'/editor',
       data: {
         html: html,
         css: css,
