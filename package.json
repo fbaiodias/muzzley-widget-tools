@@ -8,5 +8,13 @@
     "height": 650,
     "min_width": 460,
     "min_height": 200
+  },
+  "scripts": {
+    "build": "rm emulator.nw && zip -r emulator.nw *",
+    "start": "nw emulator.nw" 
+  },
+  "dependencies": {
+    "swig": "^1.4.2",
+    "watch": "^0.13.0"
   }
 }
