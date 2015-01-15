@@ -1,14 +1,12 @@
 var watch = require('watch');
 var fs  = require('fs');
-var swig  = require('swig');
 var config  = require('./config');
 
 require('nw.gui').Window.get().showDevTools();
 
-swig.setDefaults({ autoescape: false });
-
 var baseUrl = config.muzzley.url;
 
+var widgets = [];
 var widget = {};
 
 var authenticated = false;
@@ -203,8 +201,67 @@ function getWidgets() {
   console.log('Getting widgets!');
   muzzley.getWidgets(function(err, response) {
     console.log('widgets', response);
+    if(err) {
+      return;
+    }
+    renderWidgetList(response);
   });
 }
+
+function renderWidgetList(widgets) {
+  $('#widgets-list').html('');
+
+  function getWidgetId(el) {
+    if(el.classList.contains('widget')) {
+      return el.id.split('-')[1];
+    }
+    return el.parentNode && getWidgetId(el.parentNode) || {};
+  }
+
+  widgets.forEach(function(widget) {
+    $('#widgets-list').append(buildWidgetListElement(widget));
+
+    $('#widget-'+widget.id+' .name').on('click', function (ev) {
+      handleWidgetClickView(getWidgetId(ev.target));
+    });
+
+    $('#widget-'+widget.id+' .download').on('click', function (ev) {
+      handleWidgetClickDownload(getWidgetId(ev.target));
+    });
+
+    $('#widget-'+widget.id+' .upload').on('click', function (ev) {
+      handleWidgetClickUpload(getWidgetId(ev.target));
+    });
+  });
+}
+
+function buildWidgetListElement(widget) {
+  return  '<div class="widget" id="widget-' + widget.id + '">' +
+            '<div class="name">' + widget.name + '</div>' +
+            '<div><b>ID:</b> ' + widget.id + '</div>' +
+            '<div><b>UUID:</b> ' + widget.uuid + '</div>' +
+            '<div>' +
+              '<a class="download button">Download</a>' +
+              '<a class="upload button">Upload</a>' +
+            '</div>'
+          '</div>';
+}
+
+function handleWidgetClickView(id) {
+  console.log('handleWidgetClickView', id);
+}
+
+function handleWidgetClickDownload(id) {
+  console.log('handleWidgetClickDownload', id);
+  muzzley.getWidget(id, function(err, response) {
+    console.log('widget', response);
+  });
+}
+
+function handleWidgetClickUpload(id) {
+  console.log('handleWidgetClickUpload', id);
+}
+
 
 function getWidget(id) {
   console.log('Getting widget', id);
