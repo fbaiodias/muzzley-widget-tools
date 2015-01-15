@@ -3,11 +3,12 @@ var fs  = require('fs');
 var swig  = require('swig');
 var config  = require('./config');
 
+require('nw.gui').Window.get().showDevTools();
+
 swig.setDefaults({ autoescape: false });
 
 var baseUrl = config.muzzley.url;
 
-var tpl = swig.compileFile('assets/template.html');
 var widget = {};
 
 var authenticated = false;
@@ -69,38 +70,10 @@ function update() {
   }
 
   function render() {
-    var html_string = tpl({
-      stylesheet: css.replace(/\"\/\//g, '"https://').replace(/\'\/\//g, '\'https://'),
-      html: html.replace(/\"\/\//g, '"https://').replace(/\'\/\//g, '\'https://'),
-      javascript: js.replace(/\"\/\//g, '"https://').replace(/\'\/\//g, '\'http://')
-    });
-
-    //console.log(html_string);
-
-    var iframe = document.getElementById('test_iframe');
-    
-    var iframedoc = iframe.document;
-    if (iframe.contentDocument) {
-      iframedoc = iframe.contentDocument;
-    }
-    else if (iframe.contentWindow) {
-      iframedoc = iframe.contentWindow.document;
-    }
-    if (iframedoc){
-      // Put the content in the iframe
-      iframedoc.open();
-      iframedoc.writeln(html_string);
-      iframedoc.close();
-    } else {
-      //just in case of browsers that don't support the above 3 properties.
-      //fortunately we don't come across such case so far.
-      alert('Cannot inject dynamic contents into iframe.');
-    }
-  
     message.innerText = widget.path;
 
     saveWidget(html,css,js);
-  } 
+  }
 
   if(widget.html && widget.html !== '') {
     getHtml();
@@ -119,7 +92,7 @@ function findFiles(cb) {
     var filePatt = /\.[0-9a-z]{1,5}$/i;
     localStorage.widgetId = '';
     localStorage.activity = '';
-      
+
     for(var i in files) {
       var m1 = (files[i]).match(filePatt);
       if(m1 && m1.length > 0) {
@@ -165,7 +138,7 @@ $(document).ready(function() {
     if(!$(this).val() || $(this).val() == '') {
       return;
     }
-    
+
     localStorage.path = $(this).val();
     changePath();
   });
@@ -173,9 +146,9 @@ $(document).ready(function() {
   if(localStorage.path) {
     changePath();
   } else {
-    chooser.trigger('click');  
+    chooser.trigger('click');
   }
-  
+
   $('#file').click(function(){
       chooser.click();
   }).show();
@@ -188,21 +161,6 @@ $(document).ready(function() {
     $('.settings').animate({
       width: 'toggle'
     }, 200);
-  });
-
-  $('#showQRCode').click(function() {
-    console.log(localStorage.activity);
-    $('.qrcode').animate({
-      opacity: 'toggle'
-    }, 200);
-    $('.qrcode').css('background', 'url('+ baseUrl +'/qrcode/'+localStorage.activity+') no-repeat center center rgba(0,0,0,0.3)');  
-  });
-  $('.qrcode').click(function() {
-    console.log(localStorage.activity);
-    $('.qrcode').animate({
-      opacity: 'toggle'
-    }, 200);
-    $('.qrcode').css('background', 'url('+ baseUrl +'/qrcode/'+localStorage.activity+') no-repeat center center rgba(0,0,0,0.3)');  
   });
 
   $('#login').click(function() {
@@ -218,27 +176,40 @@ $(document).ready(function() {
     $('#username').val(localStorage.username)
     $('#password').val(localStorage.password);
 
-    $('#login').trigger('click');  
+    $('#login').trigger('click');
   }
 });
 
 function login() {
   console.log('Logging in!');
-  $.ajax({
-    type: 'POST',
-    url: baseUrl + '/signin',
-    data: {
-      email: localStorage.username,
-      password: localStorage.password
-    },
-    complete: function(data){
-      console.log('Log in status', data.status);
-      authenticated = true;
-      $('.settings').animate({
-        width: 'toggle'
-      }, 200);
-      $('#login').val('log in again');
-    },
+  muzzley.login(localStorage.username, localStorage.password, function (err, response) {
+    console.log('Log in', response);
+    if(err || !response || !response.success) {
+      $('#login').val(response && response.message || 'login error');
+      return;
+    }
+
+    authenticated = true;
+    $('.settings').animate({
+      width: 'toggle'
+    }, 200);
+    $('#login').val('log in again');
+
+    getWidgets();
+  });
+}
+
+function getWidgets() {
+  console.log('Getting widgets!');
+  muzzley.getWidgets(function(err, response) {
+    console.log('widgets', response);
+  });
+}
+
+function getWidget(id) {
+  console.log('Getting widget', id);
+  muzzley.getWidget(id, function(err, response) {
+    console.log('widgets', response);
   });
 }
 
@@ -257,18 +228,13 @@ function changePath () {
 
 function saveWidget(html, css, js) {
   if(authenticated && localStorage.widgetId) {
-    $.ajax({
-      type: 'POST',
-      url: baseUrl + '/widgets/'+localStorage.widgetId+'/editor',
-      data: {
-        html: html,
-        css: css,
-        js: js
-      },
-      complete: function(data){
-        console.log('POST status', data.status);
-      },
-      //dataType: dataType
+    var data = {
+      html: html,
+      css: css,
+      js: js
+    };
+    muzzley.saveWidget(localStorage.widgetId, data, function(err, response) {
+      console.log('seve widget', response);
     });
   }
 }

@@ -1,8 +1,8 @@
 {
-  "name": "muzzley-widget-emulator",
+  "name": "muzzley-widget-tools",
   "main": "index.html",
   "window": {
-    "title": "Muzzley Widget Emulator",
+    "title": "Muzzley Widget Tools",
     "toolbar": false,
     "width": 600,
     "height": 650,
@@ -10,11 +10,10 @@
     "min_height": 200
   },
   "scripts": {
-    "build": "rm emulator.nw && zip -r emulator.nw *",
-    "start": "nw emulator.nw" 
+    "build": "zip -r dist/muzzley-widget-tools.nw *",
+    "start": "nw ."
   },
   "dependencies": {
-    "swig": "^1.4.2",
     "watch": "^0.13.0"
   }
 }
