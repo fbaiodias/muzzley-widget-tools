@@ -1,7 +1,8 @@
 var config = {};
 
 config.muzzley = {
-  url: 'http://site.office.muzzley.com',
+  staging: 'http://site.office.muzzley.com',
+  production: 'https://muzzley.com',
 }
 
 module.exports = config;

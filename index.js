@@ -16,29 +16,27 @@ function showDeveloperTools() {
   require('nw.gui').Window.get().showDevTools();
 }
 
-$(document).ready(function() {
-  var wrapper = $('<div/>').css({height:0,width:0,'overflow':'hidden'});
-  var chooser = $(':file').wrap(wrapper);
+var wrapper;
+var pathChooser;
 
-  chooser.change(function(){
+$(document).ready(function() {
+  wrapper = $('<div/>').css({height:0,width:0,'overflow':'hidden'});
+  pathChooser = $(':file').wrap(wrapper);
+
+  pathChooser.change(function(){
     if(!$(this).val() || $(this).val() == '') {
       return;
     }
 
-    localStorage.path = $(this).val();
+    var user = currentAccount();
+    user.path = $(this).val();
+    saveAccount(user);
 
-    createFileMonitor(localStorage.path);
+    createFileMonitor($(this).val());
   });
 
-  if(!localStorage.path) {
-    chooser.trigger('click');
-  }
-  else {
-    createFileMonitor(localStorage.path);
-  }
-
   $('#file').click(function(){
-    chooser.click();
+    pathChooser.click();
   }).show();
 
   // $('#reload').click(update);
@@ -53,28 +51,70 @@ $(document).ready(function() {
 
   $('#login').click(function() {
     $('#login').val('logging in...');
-
-    localStorage.username = $('#username').val();
-    localStorage.password = $('#password').val();
-
-    login();
+    login($('#username').val(), $('#password').val(), $('#muzzleyEnv').val());
   });
 
-  if(localStorage.username && localStorage.password) {
-    $('#username').val(localStorage.username)
-    $('#password').val(localStorage.password);
+  var user = currentAccount();
 
-    $('#login').trigger('click');
+  if(user) {
+    $('#username').val(user.username);
+    $('#password').val(user.password);
+    $('#muzzleyEnv').val(user.muzzleyEnv);
+
+    if(user.username && user.password && user.muzzleyEnv) {
+      $('#login').trigger('click');
+    }
   }
 });
 
-function login() {
+function getAccountKey(muzzleyEnv, id) {
+  return 'accounts\:'+muzzleyEnv+'\:'+id;
+}
+
+function saveAccount(account) {
+  var key = getAccountKey(account.muzzleyEnv, account.id);
+  localStorage.setItem(key, JSON.stringify(account));
+}
+
+function getAccount(muzzleyEnv, id) {
+  var key = getAccountKey(muzzleyEnv, id);
+  var value = localStorage.getItem(key);
+  return value && JSON.parse(value);
+}
+
+function currentAccount () {
+  return localStorage.lastMuzzleyEnv && localStorage.lastUser && getAccount(localStorage.lastMuzzleyEnv, localStorage.lastUser);
+}
+
+function login(username, password, muzzleyEnv) {
   console.log('Logging in!');
-  muzzley.login(localStorage.username, localStorage.password, function (err, response) {
+  muzzley.login(username, password, muzzleyEnv, function (err, response) {
     console.log('Log in', response);
     if(err || !response || !response.success) {
       $('#login').val(response && response.message || 'login error');
       return;
+    }
+
+    var user = response.user;
+
+    // Save account if it's new
+    if(!getAccount(muzzleyEnv, user.id)) {
+      var user = response.user;
+      user.username = username;
+      user.password = password;
+      user.muzzleyEnv = muzzleyEnv;
+
+      saveAccount(user);
+    }
+
+    localStorage.lastMuzzleyEnv = muzzleyEnv;
+    localStorage.lastUser = user.id;
+
+    if(!getAccount(muzzleyEnv, user.id).path) {
+      pathChooser.trigger('click');
+    }
+    else {
+      createFileMonitor(getAccount(muzzleyEnv, user.id).path);
     }
 
     authenticated = true;
@@ -167,7 +207,7 @@ function handleWidgetClickDownload(id) {
   console.log('handleWidgetClickDownload', id);
   muzzley.getWidget(id, function(err, response) {
     console.log('response', response);
-    var widget = fileManager.generateWidgetPaths(localStorage.path, response);
+    var widget = fileManager.generateWidgetPaths(currentAccount().path, response);
 
     widget.js = widget.js || widget.javascript;
     widget.css = widget.css || widget.stylesheet;
