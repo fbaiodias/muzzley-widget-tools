@@ -26,10 +26,15 @@ $(document).ready(function() {
     }
 
     localStorage.path = $(this).val();
+
+    createFileMonitor(localStorage.path);
   });
 
   if(!localStorage.path) {
     chooser.trigger('click');
+  }
+  else {
+    createFileMonitor(localStorage.path);
   }
 
   $('#file').click(function(){
@@ -82,6 +87,27 @@ function login() {
   });
 }
 
+function createFileMonitor(path) {
+  fileManager.createMonitor(path, function (monitor) {
+    monitor.on('update', function(widget) {
+      console.log('update', arguments);
+      if(authenticated) {
+        saveWidget(widget, function (err) {
+          if(err) {
+            updateWidgetMessage(widget.id, 'Error uploading files!', 'warning');
+            return;
+          }
+
+          updateWidgetMessage(widget.id, 'Files uploaded!', 'check');
+        });
+      }
+    })
+    monitor.on('error', function() {
+      console.log('error', arguments);
+    })
+  });
+}
+
 function getWidgets() {
   console.log('Getting widgets!');
   muzzley.getWidgets(function(err, response) {
@@ -126,9 +152,10 @@ function buildWidgetListElement(widget) {
             '<div><b>ID:</b> ' + widget.id + '</div>' +
             '<div><b>UUID:</b> ' + widget.uuid + '</div>' +
             '<div>' +
-              '<a class="download button">Download</a>' +
-              '<a class="upload button">Upload</a>' +
-            '</div>'
+              '<a class="download button"><i class="fa fa-cloud-download"></i> Download</a>' +
+              // '<a class="upload button">Upload</a>' +
+            '</div>' +
+            '<div class="message"></div>' +
           '</div>';
 }
 
@@ -151,10 +178,12 @@ function handleWidgetClickDownload(id) {
 
     fileManager.writeFiles(widget, function(err, widget) {
       if(err) {
+        updateWidgetMessage(widget.id, 'Error downloading files!', 'warning');
         return console.log('error saving files', err);
       }
 
-      console.log('files saved!');
+      console.log('files downloaded!');
+      updateWidgetMessage(widget.id, 'Files downloaded!', 'check');
     });
   });
 }
@@ -171,15 +200,29 @@ function getWidget(id) {
   });
 }
 
-function saveWidget(widget) {
-  if(authenticated) {
-    var data = {
-      html: widget.html,
-      css: widget.css,
-      js: widget.js
-    };
-    muzzley.saveWidget(widget.id, data, function(err, response) {
-      console.log('seve widget', response);
-    });
-  }
+function saveWidget(widget, cb) {
+  var data = {
+    html: widget.html,
+    css: widget.css,
+    js: widget.js
+  };
+  muzzley.saveWidget(widget.id, data, function(err, response) {
+    console.log('save widget', response);
+    if(cb) {
+      cb(err, response);
+    }
+  });
+}
+
+function updateWidgetMessage(id, message, icon) {
+  var now = new Date();
+
+  var html =  '<i class="fa fa-'+icon+'"></i> ' + message + ' ' +
+              '<abbr class="timeago" title="'+ now.toISOString()+'">' +
+                now +
+              '</abbr>';
+
+  $('#widget-'+id+' .message').html(html);
+
+  $('#widget-'+id+' .message abbr.timeago').timeago();
 }

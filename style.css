@@ -98,6 +98,17 @@ a {
   font-weight: 500;
 }
 
+#widgets-list .widget .message {
+  color: #bbb;
+  font-size: 14px;
+  font-weight: 300;
+}
+
+#widgets-list .widget .message .timeago {
+  color: #aaa;
+  font-size: 12px;
+}
+
 #widgets-list .widget .button {
   color: #e21c24;
   background: transparent;
