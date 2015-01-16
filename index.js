@@ -1,6 +1,7 @@
 var watch = require('watch');
-var fs  = require('fs');
-var config  = require('./config');
+var fs = require('fs');
+var config = require('./config');
+var fileManager = require('./lib/fileManager');
 
 require('nw.gui').Window.get().showDevTools();
 
@@ -10,119 +11,6 @@ var widgets = [];
 var widget = {};
 
 var authenticated = false;
-
-function createMonitor() {
-  watch.createMonitor(widget.path, function (monitor) {
-    //monitor.files['/home/mikeal/.zshrc'] // Stat object for my zshrc.
-    monitor.on('created', function (f, stat) {
-      // Handle new files
-    });
-    monitor.on('changed', function (f, curr, prev) {
-      // Handle file changes
-      console.log('changed', f, curr, prev);
-      update();
-    });
-    monitor.on('removed', function (f, stat) {
-      // Handle removed files
-    });
-    //monitor.stop(); // Stop watching
-  });
-}
-
-function update() {
-  var html;
-  var js;
-  var css;
-
-  var message = document.getElementById('message');
-  message.innerText = 'Loading...';
-
-  function getHtml() {
-    fs.readFile(widget.html, function read(err, data) {
-      if (err) {
-        console.log(err);
-      }
-      html = data.toString('utf8');
-      getJs();
-    });
-  }
-
-  function getJs() {
-    fs.readFile(widget.js, function read(err, data) {
-      if (err) {
-        console.log(err);
-      }
-      js = data.toString('utf8');
-      getCss();
-    });
-  }
-
-  function getCss() {
-    fs.readFile(widget.css, function read(err, data) {
-      if (err) {
-        console.log(err);
-      }
-      css = data.toString('utf8');
-      render();
-    });
-  }
-
-  function render() {
-    message.innerText = widget.path;
-
-    saveWidget(html,css,js);
-  }
-
-  if(widget.html && widget.html !== '') {
-    getHtml();
-  }
-}
-
-function findFiles(cb) {
-  fs.readdir(widget.path, gotFiles);
-
-  function gotFiles(err, files) {
-    if(err || !files) {
-      alert('Oh no, there was an error!!!');
-      return console.log(err);
-    }
-
-    var filePatt = /\.[0-9a-z]{1,5}$/i;
-    localStorage.widgetId = '';
-    localStorage.activity = '';
-
-    for(var i in files) {
-      var m1 = (files[i]).match(filePatt);
-      if(m1 && m1.length > 0) {
-        switch(m1[0]) {
-          case '.json':
-            var configFile = require(widget.path + '/' + files[i]);
-            localStorage.widgetId = configFile.id;
-            localStorage.activity = configFile.activity;
-          break;
-          case '.html':
-            widget.html = widget.path + '/' + files[i];
-          break;
-          case '.js':
-            widget.js = widget.path + '/' + files[i];
-          break;
-          case '.css':
-            widget.css = widget.path + '/' + files[i];
-          break;
-        }
-      }
-    }
-
-    console.log('localStorage config', JSON.stringify(localStorage.widgetId, null, 2));
-
-    if(!localStorage.widgetId || localStorage.widgetId == '') {
-      alert('No config.json file found!!');
-      err = 'No config.json file found!!';
-    }
-
-    cb(err, widget);
-  }
-}
 
 function showDeveloperTools() {
   require('nw.gui').Window.get().showDevTools();
@@ -138,20 +26,17 @@ $(document).ready(function() {
     }
 
     localStorage.path = $(this).val();
-    changePath();
   });
 
-  if(localStorage.path) {
-    changePath();
-  } else {
+  if(!localStorage.path) {
     chooser.trigger('click');
   }
 
   $('#file').click(function(){
-      chooser.click();
+    chooser.click();
   }).show();
 
-  $('#reload').click(update);
+  // $('#reload').click(update);
 
   $('#showDeveloperTools').click(showDeveloperTools);
 
@@ -254,7 +139,23 @@ function handleWidgetClickView(id) {
 function handleWidgetClickDownload(id) {
   console.log('handleWidgetClickDownload', id);
   muzzley.getWidget(id, function(err, response) {
-    console.log('widget', response);
+    console.log('response', response);
+    var widget = fileManager.generateWidgetPaths(localStorage.path, response);
+
+    widget.js = widget.js || widget.javascript;
+    widget.css = widget.css || widget.stylesheet;
+    delete(widget.javascript);
+    delete(widget.stylesheet);
+
+    console.log('widget', widget);
+
+    fileManager.writeFiles(widget, function(err, widget) {
+      if(err) {
+        return console.log('error saving files', err);
+      }
+
+      console.log('files saved!');
+    });
   });
 }
 
@@ -270,27 +171,14 @@ function getWidget(id) {
   });
 }
 
-function changePath () {
-  if(localStorage.path && localStorage.path != '') {
-    widget.path = localStorage.path;
-    console.log('WIDGET PATH '+widget.path);
-    findFiles(function(err, widget) {
-      console.log(err || widget);
-
-      update();
-      createMonitor();
-    });
-  }
-}
-
-function saveWidget(html, css, js) {
-  if(authenticated && localStorage.widgetId) {
+function saveWidget(widget) {
+  if(authenticated) {
     var data = {
-      html: html,
-      css: css,
-      js: js
+      html: widget.html,
+      css: widget.css,
+      js: widget.js
     };
-    muzzley.saveWidget(localStorage.widgetId, data, function(err, response) {
+    muzzley.saveWidget(widget.id, data, function(err, response) {
       console.log('seve widget', response);
     });
   }
